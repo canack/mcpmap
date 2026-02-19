@@ -9,10 +9,20 @@ Network scanner that discovers and security-audits [MCP](https://modelcontextpro
 ## Install
 
 ```bash
+# Homebrew (macOS/Linux)
+brew install canack/tap/mcpmap
+
+# Cargo
 cargo install mcpmap
+
+# Shell one-liner (macOS/Linux)
+curl --proto '=https' --tlsv1.2 -LsSf https://github.com/canack/mcpmap/releases/latest/download/mcpmap-installer.sh | sh
+
+# Docker
+docker run --rm ghcr.io/canack/mcpmap:latest 192.168.1.0/24
 ```
 
-Requires Rust 1.85+. Pre-built binaries on [GitHub Releases](https://github.com/canack/mcpmap/releases).
+Pre-built binaries for all platforms on [GitHub Releases](https://github.com/canack/mcpmap/releases).
 
 ## Usage
 
