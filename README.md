@@ -5,7 +5,7 @@
 [![CI](https://github.com/canack/mcpmap/actions/workflows/ci.yml/badge.svg)](https://github.com/canack/mcpmap/actions)
 
 <p align="center">
-  <img src="assets/demo.gif" alt="mcpmap demo" width="720">
+  <img src="assets/demo.gif" alt="mcpmap demo">
 </p>
 
 Network scanner that discovers and security-audits [MCP](https://modelcontextprotocol.io) servers across IP ranges. Like nmap, but for Model Context Protocol.
