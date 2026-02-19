@@ -1,5 +1,5 @@
 use clap::Parser;
-use mcpmap::cli::{parse_target, Args};
+use mcpmap::cli::{Args, parse_target};
 use mcpmap::mcp::active::PinFile;
 use mcpmap::output::{print_json_results, print_results};
 use mcpmap::scanner::engine::{ScanConfig, ScanEngine};
@@ -61,7 +61,9 @@ async fn main() {
     }
 
     if args.insecure {
-        eprintln!("WARNING: --insecure mode enabled. TLS certificate validation disabled. Traffic may be interceptable.");
+        eprintln!(
+            "WARNING: --insecure mode enabled. TLS certificate validation disabled. Traffic may be interceptable."
+        );
     }
 
     if args.probe_tools && !args.i_accept_risk {
@@ -73,7 +75,9 @@ async fn main() {
 
     if args.probe_medium && !args.quiet {
         eprintln!("WARNING: --probe-medium will invoke MEDIUM-risk tools on target MCP servers.");
-        eprintln!("This significantly increases the chance of side effects (file reads, network I/O, etc).");
+        eprintln!(
+            "This significantly increases the chance of side effects (file reads, network I/O, etc)."
+        );
         eprintln!("Proceeding because --i-accept-risk was specified.");
     }
 
@@ -127,7 +131,9 @@ async fn main() {
     if let Some(ref pin_path) = args.pin {
         let mut pin_file = PinFile::new();
         for result in &results {
-            let Some(mcp) = &result.mcp_result else { continue };
+            let Some(mcp) = &result.mcp_result else {
+                continue;
+            };
             if let Some(active) = &mcp.active_probe {
                 let key = format!("{}:{}", result.target.ip, result.target.port);
                 pin_file.servers.insert(
@@ -149,7 +155,9 @@ async fn main() {
             Ok(saved) => {
                 let mut current = PinFile::new();
                 for result in &results {
-                    let Some(mcp) = &result.mcp_result else { continue };
+                    let Some(mcp) = &result.mcp_result else {
+                        continue;
+                    };
                     if let Some(active) = &mcp.active_probe {
                         let key = format!("{}:{}", result.target.ip, result.target.port);
                         current.servers.insert(
@@ -165,7 +173,10 @@ async fn main() {
                         eprintln!("Pin verification: OK (no changes detected)");
                     }
                 } else {
-                    eprintln!("Pin verification: FAILED ({} change(s) detected)", diffs.len());
+                    eprintln!(
+                        "Pin verification: FAILED ({} change(s) detected)",
+                        diffs.len()
+                    );
                     // Collect per-server diff descriptions for MCP-015 injection
                     let mut server_diffs: std::collections::HashMap<String, Vec<String>> =
                         std::collections::HashMap::new();
@@ -187,9 +198,16 @@ async fn main() {
                                 eprintln!("  - Tool removed: {} on {}", tool, server);
                                 (server.clone(), format!("Tool removed: {}", tool))
                             }
-                            mcpmap::mcp::active::PinDiff::ToolDescriptionChanged { server, tool, .. } => {
+                            mcpmap::mcp::active::PinDiff::ToolDescriptionChanged {
+                                server,
+                                tool,
+                                ..
+                            } => {
                                 eprintln!("  ~ Tool description changed: {} on {}", tool, server);
-                                (server.clone(), format!("Tool description changed: {}", tool))
+                                (
+                                    server.clone(),
+                                    format!("Tool description changed: {}", tool),
+                                )
                             }
                             mcpmap::mcp::active::PinDiff::ToolSchemaChanged { server, tool } => {
                                 eprintln!("  ~ Tool schema changed: {} on {}", tool, server);
@@ -203,7 +221,10 @@ async fn main() {
                                 eprintln!("  - Resource removed: {} on {}", uri, server);
                                 (server.clone(), format!("Resource removed: {}", uri))
                             }
-                            mcpmap::mcp::active::PinDiff::ResourceContentChanged { server, uri } => {
+                            mcpmap::mcp::active::PinDiff::ResourceContentChanged {
+                                server,
+                                uri,
+                            } => {
                                 eprintln!("  ~ Resource content changed: {} on {}", uri, server);
                                 (server.clone(), format!("Resource content changed: {}", uri))
                             }
@@ -252,7 +273,12 @@ async fn main() {
                         let args_str = std::env::args().collect::<Vec<_>>().join(" ");
                         print_json_results(&results, total_targets, elapsed, &args_str);
                     } else {
-                        print_results(&results, total_targets, Some(elapsed), args.get_output_format());
+                        print_results(
+                            &results,
+                            total_targets,
+                            Some(elapsed),
+                            args.get_output_format(),
+                        );
                     }
                     process::exit(2);
                 }
@@ -268,7 +294,12 @@ async fn main() {
         let args_str = std::env::args().collect::<Vec<_>>().join(" ");
         print_json_results(&results, total_targets, elapsed, &args_str);
     } else {
-        print_results(&results, total_targets, Some(elapsed), args.get_output_format());
+        print_results(
+            &results,
+            total_targets,
+            Some(elapsed),
+            args.get_output_format(),
+        );
     }
 
     if results.is_empty() {

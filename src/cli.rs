@@ -45,7 +45,13 @@ pub struct Args {
 
     // ── Scanning ──────────────────────────────────────────────
     /// Scan mode
-    #[arg(short, long, value_enum, default_value = "fast", help_heading = "Scanning")]
+    #[arg(
+        short,
+        long,
+        value_enum,
+        default_value = "fast",
+        help_heading = "Scanning"
+    )]
     pub mode: ScanMode,
 
     /// Port range (e.g., "80,443" or "1-1000")
@@ -65,7 +71,13 @@ pub struct Args {
     pub deep_probe: bool,
 
     /// URL scheme for connections
-    #[arg(long, value_enum, default_value = "both", help_heading = "Scanning", hide_short_help = true)]
+    #[arg(
+        long,
+        value_enum,
+        default_value = "both",
+        help_heading = "Scanning",
+        hide_short_help = true
+    )]
     pub scheme: SchemeMode,
 
     /// Accept invalid TLS certificates
@@ -73,11 +85,21 @@ pub struct Args {
     pub insecure: bool,
 
     /// Max target count (IP:port combinations)
-    #[arg(long, default_value = "1000000", help_heading = "Scanning", hide_short_help = true)]
+    #[arg(
+        long,
+        default_value = "1000000",
+        help_heading = "Scanning",
+        hide_short_help = true
+    )]
     pub max_targets: usize,
 
     /// Max requests per second (0 = unlimited)
-    #[arg(long, default_value = "0", help_heading = "Scanning", hide_short_help = true)]
+    #[arg(
+        long,
+        default_value = "0",
+        help_heading = "Scanning",
+        hide_short_help = true
+    )]
     pub rate_limit: u32,
 
     // ── Probing ──────────────────────────────────────────────
@@ -86,19 +108,39 @@ pub struct Args {
     pub enumerate: bool,
 
     /// Active security probing (safe, metadata-only)
-    #[arg(long, default_value_t = false, requires = "enumerate", help_heading = "Probing")]
+    #[arg(
+        long,
+        default_value_t = false,
+        requires = "enumerate",
+        help_heading = "Probing"
+    )]
     pub active: bool,
 
     /// Call LOW-risk tools with test inputs
-    #[arg(long, default_value_t = false, requires = "active", help_heading = "Probing")]
+    #[arg(
+        long,
+        default_value_t = false,
+        requires = "active",
+        help_heading = "Probing"
+    )]
     pub probe_tools: bool,
 
     /// Also call MEDIUM-risk tools (pentest only)
-    #[arg(long, default_value_t = false, requires = "probe_tools", help_heading = "Probing")]
+    #[arg(
+        long,
+        default_value_t = false,
+        requires = "probe_tools",
+        help_heading = "Probing"
+    )]
     pub probe_medium: bool,
 
     /// Show probe plan without executing
-    #[arg(long, default_value_t = false, requires = "active", help_heading = "Probing")]
+    #[arg(
+        long,
+        default_value_t = false,
+        requires = "active",
+        help_heading = "Probing"
+    )]
     pub dry_run: bool,
 
     /// Explicit consent for tool invocation
@@ -106,7 +148,12 @@ pub struct Args {
     pub i_accept_risk: bool,
 
     /// Save tool/resource hashes to pin file
-    #[arg(long, value_name = "FILE", conflicts_with = "verify", help_heading = "Probing")]
+    #[arg(
+        long,
+        value_name = "FILE",
+        conflicts_with = "verify",
+        help_heading = "Probing"
+    )]
     pub pin: Option<PathBuf>,
 
     /// Verify against a saved pin file
@@ -163,17 +210,17 @@ impl Args {
 #[must_use]
 pub fn known_mcp_ports() -> Vec<u16> {
     vec![
-        80, 443,          // Production (reverse proxy / cloud)
-        3000, 3001,       // mcp-http-server, MCP everything server, TS SDK
-        3232,             // MCP example-remote-server
-        5000, 5001,       // Flask/Python MCP servers
-        5678,             // n8n MCP server
-        6274, 6277,       // MCP Inspector (client UI + proxy)
-        7071,             // Azure Functions MCP
-        8000,             // FastMCP Python, Supergateway
-        8080,             // mcp-framework SSE, Fly.io, Docker MCP Gateway
-        8787,             // Cloudflare Workers (wrangler dev)
-        8811,             // Docker MCP Gateway (streaming)
+        80, 443, // Production (reverse proxy / cloud)
+        3000, 3001, // mcp-http-server, MCP everything server, TS SDK
+        3232, // MCP example-remote-server
+        5000, 5001, // Flask/Python MCP servers
+        5678, // n8n MCP server
+        6274, 6277, // MCP Inspector (client UI + proxy)
+        7071, // Azure Functions MCP
+        8000, // FastMCP Python, Supergateway
+        8080, // mcp-framework SSE, Fly.io, Docker MCP Gateway
+        8787, // Cloudflare Workers (wrangler dev)
+        8811, // Docker MCP Gateway (streaming)
     ]
 }
 

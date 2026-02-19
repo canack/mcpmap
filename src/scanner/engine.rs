@@ -3,13 +3,13 @@ use crate::error::Result;
 use crate::mcp::active::ActiveProber;
 use crate::mcp::prober::{McpProbeResult, McpProber};
 use crate::mcp::protocol::ConfidenceLevel;
-use crate::scanner::port::{check_port, PortStatus};
-use crate::scanner::target::{generate_targets, shuffle_targets, ScanTarget};
+use crate::scanner::port::{PortStatus, check_port};
+use crate::scanner::target::{ScanTarget, generate_targets, shuffle_targets};
 use futures::stream::{self, StreamExt};
 use indicatif::{ProgressBar, ProgressStyle};
 use std::net::IpAddr;
-use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{Duration, Instant as StdInstant};
 use tokio::sync::Semaphore;
 use tokio::time::sleep;
@@ -98,7 +98,11 @@ impl ScanEngine {
                 .with_deep_probe(config.deep_probe)
                 .with_scheme(config.scheme),
         );
-        Ok(Self { config, prober, cancel_token })
+        Ok(Self {
+            config,
+            prober,
+            cancel_token,
+        })
     }
 
     /// Scan the given IPs and ports for MCP servers.
@@ -106,7 +110,12 @@ impl ScanEngine {
         let mut targets = generate_targets(&ips, &ports);
         let total_targets = targets.len();
 
-        info!("Scanning {} targets ({} hosts × {} ports)", total_targets, ips.len(), ports.len());
+        info!(
+            "Scanning {} targets ({} hosts × {} ports)",
+            total_targets,
+            ips.len(),
+            ports.len()
+        );
 
         if self.config.mode == ScanMode::Stealth {
             shuffle_targets(&mut targets);
@@ -209,11 +218,13 @@ impl ScanEngine {
                     };
 
                     if let Some(ref mcp) = mcp_result {
-                        let dominated = mcp.confidence.score >= min_confidence && if show_all {
-                            mcp.confidence.score > 0 || mcp.is_mcp_server()
-                        } else {
-                            mcp.confidence.level != ConfidenceLevel::Unlikely || mcp.is_mcp_server()
-                        };
+                        let dominated = mcp.confidence.score >= min_confidence
+                            && if show_all {
+                                mcp.confidence.score > 0 || mcp.is_mcp_server()
+                            } else {
+                                mcp.confidence.level != ConfidenceLevel::Unlikely
+                                    || mcp.is_mcp_server()
+                            };
                         if dominated {
                             let count = found_count.fetch_add(1, Ordering::Relaxed) + 1;
                             if let Some(ref pb) = progress {

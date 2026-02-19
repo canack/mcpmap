@@ -136,7 +136,10 @@ async fn start_mcp_container(
         .with_entrypoint("sh")
         .with_cmd(vec![
             "-c".to_string(),
-            format!("echo '{}' > /tmp/server.js && node /tmp/server.js", script_escaped),
+            format!(
+                "echo '{}' > /tmp/server.js && node /tmp/server.js",
+                script_escaped
+            ),
         ]);
 
     let container = image
@@ -195,7 +198,11 @@ async fn test_docker_everything_server() -> Result<(), Box<dyn std::error::Error
 
     assert!(result.is_mcp_server(), "Should detect MCP server");
     assert_eq!(result.server_name(), Some("everything-server"));
-    let caps = result.server_info.as_ref().map(|i| i.capabilities.clone()).unwrap_or_default();
+    let caps = result
+        .server_info
+        .as_ref()
+        .map(|i| i.capabilities.clone())
+        .unwrap_or_default();
     assert!(caps.contains(&"tools".to_string()));
     assert!(caps.contains(&"resources".to_string()));
     assert!(caps.contains(&"prompts".to_string()));
@@ -257,7 +264,8 @@ async fn test_docker_fetch_server() -> Result<(), Box<dyn std::error::Error + Se
 
 #[tokio::test]
 
-async fn test_docker_sequential_thinking_server() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+async fn test_docker_sequential_thinking_server()
+-> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let server = &MCP_SERVERS[5];
     let container = start_mcp_container(server).await?;
     let result = probe_container(&container).await?;
@@ -354,7 +362,10 @@ async fn test_docker_scan_engine() -> Result<(), Box<dyn std::error::Error + Sen
 
     assert_eq!(results.len(), 1, "Should find one MCP server");
     assert!(
-        results[0].mcp_result.as_ref().is_some_and(|m| m.is_mcp_server()),
+        results[0]
+            .mcp_result
+            .as_ref()
+            .is_some_and(|m| m.is_mcp_server()),
         "Should detect as MCP server"
     );
 
@@ -399,7 +410,10 @@ async fn test_docker_multiple_servers() -> Result<(), Box<dyn std::error::Error 
     let engine = ScanEngine::new(scan_config, tokio_util::sync::CancellationToken::new())?;
 
     // Scan all targets
-    let ips: Vec<_> = targets.iter().map(|(h, _)| resolve_host(h).unwrap()).collect();
+    let ips: Vec<_> = targets
+        .iter()
+        .map(|(h, _)| resolve_host(h).unwrap())
+        .collect();
     let ports: Vec<_> = targets.iter().map(|(_, p)| *p).collect();
 
     let results = engine.scan(ips, ports).await;
@@ -414,7 +428,8 @@ async fn test_docker_multiple_servers() -> Result<(), Box<dyn std::error::Error 
 // ============================================================================
 
 #[tokio::test]
-async fn test_docker_auth_without_mcp_hints() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+async fn test_docker_auth_without_mcp_hints() -> Result<(), Box<dyn std::error::Error + Send + Sync>>
+{
     // Server that returns plain 401 without MCP hints
     // This should NOT be detected as MCP server (prevents false positives)
     let auth_server_script = r#"
@@ -423,7 +438,8 @@ async fn test_docker_auth_without_mcp_hints() -> Result<(), Box<dyn std::error::
             res.writeHead(401);
             res.end('Unauthorized');
         }).listen(3000, '0.0.0.0', () => console.log('Auth server ready'));
-    "#.replace('\'', "'\\''");
+    "#
+    .replace('\'', "'\\''");
 
     let container = GenericImage::new("node", "20-alpine")
         .with_exposed_port(3000.tcp())
@@ -431,7 +447,10 @@ async fn test_docker_auth_without_mcp_hints() -> Result<(), Box<dyn std::error::
         .with_entrypoint("sh")
         .with_cmd(vec![
             "-c".to_string(),
-            format!("echo '{}' > /tmp/server.js && node /tmp/server.js", auth_server_script),
+            format!(
+                "echo '{}' > /tmp/server.js && node /tmp/server.js",
+                auth_server_script
+            ),
         ])
         .start()
         .await?;
@@ -439,9 +458,15 @@ async fn test_docker_auth_without_mcp_hints() -> Result<(), Box<dyn std::error::
     let result = probe_container(&container).await?;
 
     // Without MCP hints, should NOT be confirmed as MCP server
-    assert!(!result.is_mcp_server(), "Plain 401 without MCP hints should not be detected as MCP");
+    assert!(
+        !result.is_mcp_server(),
+        "Plain 401 without MCP hints should not be detected as MCP"
+    );
     assert!(result.auth_required, "Should still detect auth requirement");
-    assert!(result.confidence.score < 30, "Should have low confidence without MCP hints");
+    assert!(
+        result.confidence.score < 30,
+        "Should have low confidence without MCP hints"
+    );
 
     Ok(())
 }
@@ -461,7 +486,8 @@ async fn test_docker_auth_with_mcp_hints() -> Result<(), Box<dyn std::error::Err
                 error: { code: -32000, message: 'Unauthorized' }
             }));
         }).listen(3000, '0.0.0.0', () => console.log('Auth MCP server ready'));
-    "#.replace('\'', "'\\''");
+    "#
+    .replace('\'', "'\\''");
 
     let container = GenericImage::new("node", "20-alpine")
         .with_exposed_port(3000.tcp())
@@ -469,7 +495,10 @@ async fn test_docker_auth_with_mcp_hints() -> Result<(), Box<dyn std::error::Err
         .with_entrypoint("sh")
         .with_cmd(vec![
             "-c".to_string(),
-            format!("echo '{}' > /tmp/server.js && node /tmp/server.js", auth_server_script),
+            format!(
+                "echo '{}' > /tmp/server.js && node /tmp/server.js",
+                auth_server_script
+            ),
         ])
         .start()
         .await?;
@@ -478,7 +507,10 @@ async fn test_docker_auth_with_mcp_hints() -> Result<(), Box<dyn std::error::Err
 
     // With MCP hints, should be detected as likely MCP server
     assert!(result.auth_required, "Should detect auth requirement");
-    assert!(result.confidence.score >= 30, "Should have meaningful confidence with MCP hints");
+    assert!(
+        result.confidence.score >= 30,
+        "Should have meaningful confidence with MCP hints"
+    );
 
     Ok(())
 }

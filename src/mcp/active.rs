@@ -1,6 +1,4 @@
-use crate::mcp::protocol::{
-    self, JsonRpcRequestNoParams, RiskLevel, ToolInfo,
-};
+use crate::mcp::protocol::{self, JsonRpcRequestNoParams, RiskLevel, ToolInfo};
 use crate::scanner::target::ScanTarget;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
@@ -212,13 +210,36 @@ pub struct ResourceHash {
 pub enum PinDiff {
     ServerAdded(String),
     ServerRemoved(String),
-    ToolAdded { server: String, tool: String },
-    ToolRemoved { server: String, tool: String },
-    ToolDescriptionChanged { server: String, tool: String, old_hash: String, new_hash: String },
-    ToolSchemaChanged { server: String, tool: String },
-    ResourceAdded { server: String, uri: String },
-    ResourceRemoved { server: String, uri: String },
-    ResourceContentChanged { server: String, uri: String },
+    ToolAdded {
+        server: String,
+        tool: String,
+    },
+    ToolRemoved {
+        server: String,
+        tool: String,
+    },
+    ToolDescriptionChanged {
+        server: String,
+        tool: String,
+        old_hash: String,
+        new_hash: String,
+    },
+    ToolSchemaChanged {
+        server: String,
+        tool: String,
+    },
+    ResourceAdded {
+        server: String,
+        uri: String,
+    },
+    ResourceRemoved {
+        server: String,
+        uri: String,
+    },
+    ResourceContentChanged {
+        server: String,
+        uri: String,
+    },
 }
 
 impl ServerPin {
@@ -230,7 +251,10 @@ impl ServerPin {
         let mut pin = Self {
             server_name: mcp.server_info.as_ref().and_then(|i| i.name.clone()),
             server_version: mcp.server_info.as_ref().and_then(|i| i.version.clone()),
-            protocol_version: mcp.server_info.as_ref().and_then(|i| i.protocol_version.clone()),
+            protocol_version: mcp
+                .server_info
+                .as_ref()
+                .and_then(|i| i.protocol_version.clone()),
             tools: active.tool_hashes.clone(),
             resources: HashMap::new(),
         };
@@ -266,8 +290,7 @@ impl PinFile {
 
     pub fn load(path: &Path) -> crate::error::Result<Self> {
         let data = std::fs::read_to_string(path)?;
-        serde_json::from_str(&data)
-            .map_err(|e| crate::error::McpmapError::PinFile(e.to_string()))
+        serde_json::from_str(&data).map_err(|e| crate::error::McpmapError::PinFile(e.to_string()))
     }
 
     pub fn diff(&self, current: &PinFile) -> Vec<PinDiff> {
@@ -464,7 +487,10 @@ impl ActiveProber {
         }
 
         // === Tier 1: Safe probing (metadata only) ===
-        debug!("Active probe Tier 1 (safe) on {}:{}", target.ip, target.port);
+        debug!(
+            "Active probe Tier 1 (safe) on {}:{}",
+            target.ip, target.port
+        );
 
         // Schema poisoning (MCP-008) — already computed during tool enumeration
         for tool in &tools {
@@ -488,9 +514,7 @@ impl ActiveProber {
             .extend(Self::detect_tool_squatting(&tools, server_name));
 
         // Exfiltration chains (MCP-013)
-        result
-            .findings
-            .extend(Self::detect_exfil_chains(&tools));
+        result.findings.extend(Self::detect_exfil_chains(&tools));
 
         // Cross-server manipulation (MCP-014) — descriptions already checked in detect_prompt_injection
         // Aggregate tool-level cross-server warnings into findings
@@ -519,10 +543,7 @@ impl ActiveProber {
                         id: "MCP-007".to_string(),
                         title: "Resource Content Injection".to_string(),
                         severity: Severity::Medium,
-                        description: format!(
-                            "Resource '{}' contains injection patterns",
-                            rf.uri
-                        ),
+                        description: format!("Resource '{}' contains injection patterns", rf.uri),
                         evidence: rf.injection_patterns.clone(),
                     });
                 }
@@ -564,10 +585,8 @@ impl ActiveProber {
             let mut total_calls = 0usize;
             let tool_names: Vec<String> = tools.iter().map(|t| t.name.clone()).collect();
 
-            let callable: Vec<&ToolInfo> = tools
-                .iter()
-                .filter(|t| self.is_tool_callable(t))
-                .collect();
+            let callable: Vec<&ToolInfo> =
+                tools.iter().filter(|t| self.is_tool_callable(t)).collect();
 
             // Call each callable tool with benign input
             for tool in &callable {
@@ -584,8 +603,7 @@ impl ActiveProber {
                         .await
                     {
                         Ok(call_result) => {
-                            let analysis =
-                                Self::analyze_tool_output(&call_result, &tool_names);
+                            let analysis = Self::analyze_tool_output(&call_result, &tool_names);
                             result.output_analysis.push(analysis);
                         }
                         Err(e) => {
@@ -658,7 +676,8 @@ impl ActiveProber {
             result.findings.retain(|f| {
                 if f.id == "MCP-011" || f.id == "MCP-012" {
                     // Extract tool name from description pattern "Tool 'X' ..."
-                    let tool_name = f.description
+                    let tool_name = f
+                        .description
                         .strip_prefix("Tool '")
                         .and_then(|s| s.split('\'').next())
                         .unwrap_or(&f.description);
@@ -708,10 +727,7 @@ impl ActiveProber {
     }
 
     /// Detect tool name squatting (MCP-009)
-    fn detect_tool_squatting(
-        tools: &[ToolInfo],
-        server_name: Option<&str>,
-    ) -> Vec<ActiveFinding> {
+    fn detect_tool_squatting(tools: &[ToolInfo], server_name: Option<&str>) -> Vec<ActiveFinding> {
         let mut findings = vec![];
 
         for tool in tools {
@@ -897,10 +913,7 @@ impl ActiveProber {
             };
 
             for content in contents {
-                let text = content
-                    .get("text")
-                    .and_then(|t| t.as_str())
-                    .unwrap_or("");
+                let text = content.get("text").and_then(|t| t.as_str()).unwrap_or("");
 
                 if text.is_empty() {
                     continue;
@@ -928,7 +941,10 @@ impl ActiveProber {
         session_id: Option<&str>,
         scheme: &str,
     ) -> Vec<BehavioralChange> {
-        let first = match self.fetch_tools_list(target, endpoint, session_id, scheme).await {
+        let first = match self
+            .fetch_tools_list(target, endpoint, session_id, scheme)
+            .await
+        {
             Some(t) => t,
             None => return vec![],
         };
@@ -936,7 +952,10 @@ impl ActiveProber {
 
         tokio::time::sleep(TEMPORAL_CHECK_DELAY).await;
 
-        let second = match self.fetch_tools_list(target, endpoint, session_id, scheme).await {
+        let second = match self
+            .fetch_tools_list(target, endpoint, session_id, scheme)
+            .await
+        {
             Some(t) => t,
             None => return vec![],
         };
@@ -1056,8 +1075,7 @@ impl ActiveProber {
         let elapsed_ms = start.elapsed().as_millis() as u64;
 
         // Extract text content from response
-        let parsed: serde_json::Value =
-            serde_json::from_str(&body).map_err(|e| e.to_string())?;
+        let parsed: serde_json::Value = serde_json::from_str(&body).map_err(|e| e.to_string())?;
 
         let is_error = parsed.get("error").is_some();
 
@@ -1087,10 +1105,7 @@ impl ActiveProber {
     }
 
     /// Analyze tool output for injection patterns (MCP-011)
-    fn analyze_tool_output(
-        result: &ToolCallResult,
-        all_tool_names: &[String],
-    ) -> OutputAnalysis {
+    fn analyze_tool_output(result: &ToolCallResult, all_tool_names: &[String]) -> OutputAnalysis {
         let lower = result.output.to_lowercase();
 
         // Reuse prompt injection detection on output text
@@ -1193,7 +1208,10 @@ impl ActiveProber {
         baseline_hashes: &HashMap<String, ToolHash>,
         calls_made: usize,
     ) -> Vec<BehavioralChange> {
-        let new_tools = match self.fetch_tools_list(target, endpoint, session_id, scheme).await {
+        let new_tools = match self
+            .fetch_tools_list(target, endpoint, session_id, scheme)
+            .await
+        {
             Some(t) => t,
             None => return vec![],
         };
@@ -1276,10 +1294,7 @@ impl ActiveProber {
         let body = self.read_limited_body(response).await.ok()?;
         let parsed: serde_json::Value = serde_json::from_str(&body).ok()?;
 
-        let tools_array = parsed
-            .get("result")?
-            .get("tools")?
-            .as_array()?;
+        let tools_array = parsed.get("result")?.get("tools")?.as_array()?;
 
         Some(ToolInfo::from_json_array(tools_array))
     }
@@ -1334,10 +1349,7 @@ impl ActiveProber {
             .filter(|t| t.input_schema.is_some())
             .map(|t| t.name.as_str())
             .collect();
-        eprintln!(
-            "    + Schema analysis for {} tools",
-            schema_tools.len()
-        );
+        eprintln!("    + Schema analysis for {} tools", schema_tools.len());
         eprintln!(
             "    + Tool squatting check against {} known names",
             KNOWN_TOOL_REGISTRY.len()
@@ -1436,7 +1448,13 @@ fn schema_has_url_param(schema: &serde_json::Value) -> bool {
     };
 
     const URL_KEYWORDS: &[&str] = &[
-        "url", "uri", "endpoint", "destination", "webhook", "callback", "target",
+        "url",
+        "uri",
+        "endpoint",
+        "destination",
+        "webhook",
+        "callback",
+        "target",
     ];
 
     for (name, def) in properties {
@@ -1528,9 +1546,10 @@ mod tests {
 
     #[test]
     fn test_detect_tool_squatting() {
-        let tools = vec![
-            ToolInfo::new("read_file".to_string(), Some("Read a file".to_string())),
-        ];
+        let tools = vec![ToolInfo::new(
+            "read_file".to_string(),
+            Some("Read a file".to_string()),
+        )];
 
         // Server named "my-notes-server" doesn't match "filesystem"
         let findings = ActiveProber::detect_tool_squatting(&tools, Some("my-notes-server"));
@@ -1615,13 +1634,7 @@ mod tests {
 
     #[test]
     fn test_is_tool_callable() {
-        let prober = ActiveProber::new(
-            Client::new(),
-            Duration::from_secs(5),
-            true,
-            false,
-            false,
-        );
+        let prober = ActiveProber::new(Client::new(), Duration::from_secs(5), true, false, false);
 
         let critical = ToolInfo::new("run_shell".to_string(), Some("Execute shell".to_string()));
         assert!(!prober.is_tool_callable(&critical));
@@ -1636,13 +1649,8 @@ mod tests {
         assert!(prober.is_tool_callable(&low));
 
         // With probe_medium
-        let prober_medium = ActiveProber::new(
-            Client::new(),
-            Duration::from_secs(5),
-            true,
-            true,
-            false,
-        );
+        let prober_medium =
+            ActiveProber::new(Client::new(), Duration::from_secs(5), true, true, false);
         assert!(prober_medium.is_tool_callable(&medium));
         assert!(!prober_medium.is_tool_callable(&critical)); // Still NEVER
         assert!(!prober_medium.is_tool_callable(&high)); // Still NEVER
@@ -1694,7 +1702,10 @@ mod tests {
 
     #[test]
     fn test_compare_tool_hashes_no_change() {
-        let tools = vec![ToolInfo::new("tool_a".to_string(), Some("Desc".to_string()))];
+        let tools = vec![ToolInfo::new(
+            "tool_a".to_string(),
+            Some("Desc".to_string()),
+        )];
         let hashes = ActiveProber::compute_tool_hashes(&tools);
         let changes = compare_tool_hashes(&hashes, &hashes, 0);
         assert!(changes.is_empty());
@@ -1704,12 +1715,15 @@ mod tests {
     fn test_compare_tool_hashes_added() {
         let before = HashMap::new();
         let mut after = HashMap::new();
-        after.insert("new_tool".to_string(), ToolHash {
-            name: "new_tool".to_string(),
-            description_hash: "abc".to_string(),
-            schema_hash: "def".to_string(),
-            param_count: 0,
-        });
+        after.insert(
+            "new_tool".to_string(),
+            ToolHash {
+                name: "new_tool".to_string(),
+                description_hash: "abc".to_string(),
+                schema_hash: "def".to_string(),
+                param_count: 0,
+            },
+        );
 
         let changes = compare_tool_hashes(&before, &after, 3);
         assert_eq!(changes.len(), 1);
@@ -1727,12 +1741,15 @@ mod tests {
             tools: HashMap::new(),
             resources: HashMap::new(),
         };
-        server_pin.tools.insert("tool_a".to_string(), ToolHash {
-            name: "tool_a".to_string(),
-            description_hash: "hash1".to_string(),
-            schema_hash: "schema1".to_string(),
-            param_count: 1,
-        });
+        server_pin.tools.insert(
+            "tool_a".to_string(),
+            ToolHash {
+                name: "tool_a".to_string(),
+                description_hash: "hash1".to_string(),
+                schema_hash: "schema1".to_string(),
+                param_count: 1,
+            },
+        );
         old.servers.insert("127.0.0.1:8080".to_string(), server_pin);
 
         let mut new = PinFile::new();
@@ -1743,12 +1760,15 @@ mod tests {
             tools: HashMap::new(),
             resources: HashMap::new(),
         };
-        new_pin.tools.insert("tool_a".to_string(), ToolHash {
-            name: "tool_a".to_string(),
-            description_hash: "hash2".to_string(), // Changed!
-            schema_hash: "schema1".to_string(),
-            param_count: 1,
-        });
+        new_pin.tools.insert(
+            "tool_a".to_string(),
+            ToolHash {
+                name: "tool_a".to_string(),
+                description_hash: "hash2".to_string(), // Changed!
+                schema_hash: "schema1".to_string(),
+                param_count: 1,
+            },
+        );
         new.servers.insert("127.0.0.1:8080".to_string(), new_pin);
 
         let diffs = old.diff(&new);
@@ -1808,7 +1828,10 @@ mod tests {
                 }
             })),
         );
-        assert!(!tool.schema_warnings.is_empty(), "Should detect suspicious param 'system_prompt'");
+        assert!(
+            !tool.schema_warnings.is_empty(),
+            "Should detect suspicious param 'system_prompt'"
+        );
 
         // Tool with overly long param name
         let long_name = "a".repeat(65);
@@ -1838,7 +1861,10 @@ mod tests {
                 }
             })),
         );
-        assert!(clean.schema_warnings.is_empty(), "Clean tool should have no warnings");
+        assert!(
+            clean.schema_warnings.is_empty(),
+            "Clean tool should have no warnings"
+        );
     }
 
     #[test]
@@ -1852,7 +1878,10 @@ mod tests {
         };
         let analysis = ActiveProber::analyze_tool_output(&result, &[]);
         assert!(
-            analysis.injection_patterns.iter().any(|p| p.contains("HTML comment")),
+            analysis
+                .injection_patterns
+                .iter()
+                .any(|p| p.contains("HTML comment")),
             "Should detect HTML comment injection in output"
         );
     }
@@ -1868,7 +1897,10 @@ mod tests {
         };
         let analysis = ActiveProber::analyze_tool_output(&result, &[]);
         assert!(
-            analysis.injection_patterns.iter().any(|p| p.contains("Markdown comment")),
+            analysis
+                .injection_patterns
+                .iter()
+                .any(|p| p.contains("Markdown comment")),
             "Should detect Markdown comment injection"
         );
     }
@@ -1884,7 +1916,10 @@ mod tests {
         };
         let analysis = ActiveProber::analyze_tool_output(&result, &[]);
         assert!(
-            analysis.injection_patterns.iter().any(|p| p.contains("IMPORTANT tag")),
+            analysis
+                .injection_patterns
+                .iter()
+                .any(|p| p.contains("IMPORTANT tag")),
             "Should detect IMPORTANT tag injection"
         );
     }
@@ -1901,11 +1936,15 @@ mod tests {
         let tool_names = vec!["get_data".to_string(), "write_file".to_string()];
         let analysis = ActiveProber::analyze_tool_output(&result, &tool_names);
         assert!(
-            analysis.references_other_tools.contains(&"write_file".to_string()),
+            analysis
+                .references_other_tools
+                .contains(&"write_file".to_string()),
             "Should detect reference to other tool"
         );
         assert!(
-            !analysis.references_other_tools.contains(&"get_data".to_string()),
+            !analysis
+                .references_other_tools
+                .contains(&"get_data".to_string()),
             "Should not reference self"
         );
     }
@@ -1930,7 +1969,10 @@ mod tests {
 
     #[test]
     fn test_max_calls_per_tool() {
-        assert_eq!(MAX_CALLS_PER_TOOL, 3, "MAX_CALLS_PER_TOOL should be 3 per plan");
+        assert_eq!(
+            MAX_CALLS_PER_TOOL, 3,
+            "MAX_CALLS_PER_TOOL should be 3 per plan"
+        );
     }
 
     #[test]

@@ -162,7 +162,11 @@ fn print_header(total_scanned: usize, scan_duration: Option<Duration>) {
         .map(|d| format!(" in {:.2}s", d.as_secs_f64()))
         .unwrap_or_default();
 
-    let target_label = if total_scanned == 1 { "target" } else { "targets" };
+    let target_label = if total_scanned == 1 {
+        "target"
+    } else {
+        "targets"
+    };
     println!(
         "{}",
         format!("{} {} scanned{}", total_scanned, target_label, duration_str).bold()
@@ -178,7 +182,12 @@ fn print_result(r: &ScanResult) {
     let confidence_badge = format_confidence_badge(&mcp.confidence.level, mcp.confidence.score);
     let risk_badge = format_risk_badge(&mcp.risk_level);
 
-    println!("{} {} {}", addr.bold().white(), confidence_badge, risk_badge);
+    println!(
+        "{} {} {}",
+        addr.bold().white(),
+        confidence_badge,
+        risk_badge
+    );
 
     // Server info line
     if let Some(info) = &mcp.server_info {
@@ -235,11 +244,7 @@ fn print_result(r: &ScanResult) {
     // Origin validation (DNS rebinding protection)
     if let Some(origin_validated) = mcp.origin_validation {
         if origin_validated {
-            println!(
-                "  {} {}",
-                "Origin:".dimmed(),
-                "Validated (secure)".green()
-            );
+            println!("  {} {}", "Origin:".dimmed(), "Validated (secure)".green());
         } else {
             println!(
                 "  {} {}",
@@ -251,12 +256,20 @@ fn print_result(r: &ScanResult) {
 
     // Security warnings (prompt injection, weak session, etc.)
     if !mcp.security_warnings.is_empty() {
-        println!("  {} {}", "Security:".dimmed(), format!("{} warning(s)", mcp.security_warnings.len()).red());
+        println!(
+            "  {} {}",
+            "Security:".dimmed(),
+            format!("{} warning(s)", mcp.security_warnings.len()).red()
+        );
         for warning in mcp.security_warnings.iter().take(3) {
             println!("    {} {}", "⚠".yellow(), warning);
         }
         if mcp.security_warnings.len() > 3 {
-            println!("    {} (+{} more)", "...".dimmed(), mcp.security_warnings.len() - 3);
+            println!(
+                "    {} (+{} more)",
+                "...".dimmed(),
+                mcp.security_warnings.len() - 3
+            );
         }
     }
 
@@ -304,7 +317,11 @@ fn print_result(r: &ScanResult) {
             for finding in active.findings.iter().take(5) {
                 use crate::mcp::active::Severity;
                 let severity_colored = match finding.severity {
-                    Severity::Critical => format!("[{}]", finding.severity).on_red().white().bold().to_string(),
+                    Severity::Critical => format!("[{}]", finding.severity)
+                        .on_red()
+                        .white()
+                        .bold()
+                        .to_string(),
                     Severity::High => format!("[{}]", finding.severity).red().bold().to_string(),
                     Severity::Medium => format!("[{}]", finding.severity).yellow().to_string(),
                     _ => format!("[{}]", finding.severity).dimmed().to_string(),
@@ -329,7 +346,11 @@ fn print_result(r: &ScanResult) {
     // Evidence (abbreviated)
     if !mcp.confidence.evidence.is_empty() {
         let evidence: Vec<_> = mcp.confidence.evidence.iter().take(2).cloned().collect();
-        println!("  {} {}", "Evidence:".dimmed(), evidence.join("; ").dimmed());
+        println!(
+            "  {} {}",
+            "Evidence:".dimmed(),
+            evidence.join("; ").dimmed()
+        );
     }
 
     println!();
@@ -372,7 +393,10 @@ fn print_footer(summary: &ScanSummary) {
     )];
 
     if summary.confirmed > 0 {
-        parts.push(format!("{} confirmed", summary.confirmed.to_string().green()));
+        parts.push(format!(
+            "{} confirmed",
+            summary.confirmed.to_string().green()
+        ));
     }
 
     if summary.likely > 0 {
@@ -440,7 +464,17 @@ fn print_wide_results(
         "{}",
         format!(
             "{:<17} {:>5}  {:>4}  {:<sw$}  {:<10}  {:<5}  {:>3}  {:>3}  {:>4}  {:>4}  {:>4}",
-            "HOST", "PORT", "CONF", "SERVER", "PROTO", "TRANS", "TLS", "ORG", "AUTH", "CAPS", "WARN",
+            "HOST",
+            "PORT",
+            "CONF",
+            "SERVER",
+            "PROTO",
+            "TRANS",
+            "TLS",
+            "ORG",
+            "AUTH",
+            "CAPS",
+            "WARN",
             sw = server_width,
         )
         .dimmed()
@@ -496,7 +530,10 @@ fn print_wide_line(r: &ScanResult, server_width: usize) {
         })
         .unwrap_or_else(|| "unknown".to_string());
     let server_display = if server_str.chars().count() > server_width {
-        let truncated: String = server_str.chars().take(server_width.saturating_sub(3)).collect();
+        let truncated: String = server_str
+            .chars()
+            .take(server_width.saturating_sub(3))
+            .collect();
         format!("{}...", truncated)
     } else {
         server_str
@@ -514,7 +551,11 @@ fn print_wide_line(r: &ScanResult, server_width: usize) {
         TransportType::Unknown => "?",
     };
 
-    let tls = if mcp.tls_enabled { "Y".green() } else { "N".red() };
+    let tls = if mcp.tls_enabled {
+        "Y".green()
+    } else {
+        "N".red()
+    };
 
     let origin = match mcp.origin_validation {
         Some(true) => "Y".green(),
@@ -670,7 +711,9 @@ fn build_findings(mcp: &McpProbeResult) -> Vec<JsonFinding> {
             id: "MCP-001".to_string(),
             title: "DNS Rebinding".to_string(),
             severity: "high".to_string(),
-            description: "Server does not validate Origin header. Vulnerable to DNS rebinding attacks.".to_string(),
+            description:
+                "Server does not validate Origin header. Vulnerable to DNS rebinding attacks."
+                    .to_string(),
         });
     }
 
@@ -690,7 +733,8 @@ fn build_findings(mcp: &McpProbeResult) -> Vec<JsonFinding> {
             id: "MCP-003".to_string(),
             title: "Insecure Transport".to_string(),
             severity: "medium".to_string(),
-            description: "Connection is not encrypted (HTTP). Traffic is interceptable.".to_string(),
+            description: "Connection is not encrypted (HTTP). Traffic is interceptable."
+                .to_string(),
         });
     }
 

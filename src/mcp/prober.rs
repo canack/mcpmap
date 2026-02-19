@@ -2,15 +2,15 @@ use crate::cli::SchemeMode;
 use crate::error::{McpmapError, Result};
 use crate::mcp::active::ActiveProbeResult;
 use crate::mcp::protocol::{
-    self, create_initialize_request, create_initialize_request_with_version,
-    create_initialized_notification, create_tools_list_request, McpConfidence,
-    KNOWN_PROTOCOL_VERSIONS, RiskLevel, ToolInfo, TransportType, PROTOCOL_VERSION_LATEST,
-    PROTOCOL_VERSION_LEGACY,
+    self, KNOWN_PROTOCOL_VERSIONS, McpConfidence, PROTOCOL_VERSION_LATEST, PROTOCOL_VERSION_LEGACY,
+    RiskLevel, ToolInfo, TransportType, create_initialize_request,
+    create_initialize_request_with_version, create_initialized_notification,
+    create_tools_list_request,
 };
 use crate::scanner::target::ScanTarget;
 use futures::stream::{FuturesUnordered, StreamExt};
-use reqwest::header::{HeaderMap, ACCEPT, CONTENT_TYPE};
 use reqwest::Client;
+use reqwest::header::{ACCEPT, CONTENT_TYPE, HeaderMap};
 use serde::Serialize;
 use std::net::IpAddr;
 use std::time::{Duration, Instant};
@@ -18,8 +18,14 @@ use tracing::{debug, trace, warn};
 
 const MCP_ENDPOINTS_DEFAULT: &[&str] = &["/", "/mcp", "/.well-known/mcp"];
 const MCP_ENDPOINTS_DEEP: &[&str] = &[
-    "/", "/mcp", "/sse", "/api/mcp", "/v1/mcp",
-    "/.well-known/mcp", "/mcp/v1", "/api/v1/mcp",
+    "/",
+    "/mcp",
+    "/sse",
+    "/api/mcp",
+    "/v1/mcp",
+    "/.well-known/mcp",
+    "/mcp/v1",
+    "/api/v1/mcp",
 ];
 const MAX_BODY_SIZE: usize = 65536; // 64KB max response body
 
@@ -174,7 +180,9 @@ impl McpProbeResult {
     }
 
     pub fn protocol_version(&self) -> Option<&str> {
-        self.server_info.as_ref().and_then(|i| i.protocol_version.as_deref())
+        self.server_info
+            .as_ref()
+            .and_then(|i| i.protocol_version.as_deref())
     }
 
     pub fn endpoint(&self) -> Option<&str> {
@@ -262,10 +270,7 @@ impl McpProbeResult {
 
         // Check if it's too short (weak entropy)
         if sid.len() < 16 {
-            return Some(format!(
-                "Weak session ID: too short ({} chars)",
-                sid.len()
-            ));
+            return Some(format!("Weak session ID: too short ({} chars)", sid.len()));
         }
 
         // Check Shannon entropy for IDs that pass length check
@@ -470,9 +475,7 @@ impl McpProber {
             result = result.with_session_id(session_id);
 
             if result.origin_validation == Some(false) {
-                result.add_security_warning(
-                    "Origin not validated: DNS rebinding risk".to_string(),
-                );
+                result.add_security_warning("Origin not validated: DNS rebinding risk".to_string());
             }
 
             Some(result)
@@ -485,26 +488,26 @@ impl McpProber {
     // Stage 2: HTTP Heuristic
     // =========================================================================
 
-    async fn stage2_http_heuristic_with_scheme(&self, target: &ScanTarget, scheme: &str) -> HttpHeuristicResult {
+    async fn stage2_http_heuristic_with_scheme(
+        &self,
+        target: &ScanTarget,
+        scheme: &str,
+    ) -> HttpHeuristicResult {
         let url = target.url_with_scheme(scheme, "/");
         trace!("Stage 2: GET {}", url);
 
-        let mut response = match tokio::time::timeout(
-            self.http_timeout,
-            self.client.get(&url).send(),
-        )
-        .await
-        {
-            Ok(Ok(resp)) => resp,
-            Ok(Err(e)) => {
-                trace!("Stage 2 HTTP error: {}", e);
-                return HttpHeuristicResult::default();
-            }
-            Err(_) => {
-                trace!("Stage 2 timeout");
-                return HttpHeuristicResult::default();
-            }
-        };
+        let mut response =
+            match tokio::time::timeout(self.http_timeout, self.client.get(&url).send()).await {
+                Ok(Ok(resp)) => resp,
+                Ok(Err(e)) => {
+                    trace!("Stage 2 HTTP error: {}", e);
+                    return HttpHeuristicResult::default();
+                }
+                Err(_) => {
+                    trace!("Stage 2 timeout");
+                    return HttpHeuristicResult::default();
+                }
+            };
 
         let status = response.status().as_u16();
         let headers = response.headers().clone();
@@ -564,16 +567,22 @@ impl McpProber {
         // Only mark as non-MCP if we see strong evidence (body prefix like HTML/XML)
         // or multiple signals. A single server header could be a reverse proxy.
         if non_mcp_signals > 0 {
-            let has_body_match = non_mcp_reasons.iter().any(|r| {
-                *r == "<!doctype html" || *r == "<html" || *r == "<?xml"
-            });
+            let has_body_match = non_mcp_reasons
+                .iter()
+                .any(|r| *r == "<!doctype html" || *r == "<html" || *r == "<?xml");
 
             if has_body_match || non_mcp_signals >= 2 {
                 result.is_likely_mcp = false;
-                result.skip_reason = Some(format!("Non-MCP signatures: {}", non_mcp_reasons.join(", ")));
+                result.skip_reason = Some(format!(
+                    "Non-MCP signatures: {}",
+                    non_mcp_reasons.join(", ")
+                ));
             } else {
                 // Single header match (likely reverse proxy) - reduce confidence but don't skip
-                result.skip_reason = Some(format!("Possible reverse proxy: {}", non_mcp_reasons.join(", ")));
+                result.skip_reason = Some(format!(
+                    "Possible reverse proxy: {}",
+                    non_mcp_reasons.join(", ")
+                ));
                 // Keep is_likely_mcp = true to allow probing
             }
         }
@@ -601,7 +610,11 @@ impl McpProber {
     // Stage 3: MCP Initialize Handshake
     // =========================================================================
 
-    async fn stage3_mcp_handshake_with_scheme(&self, target: &ScanTarget, scheme: &str) -> McpProbeResult {
+    async fn stage3_mcp_handshake_with_scheme(
+        &self,
+        target: &ScanTarget,
+        scheme: &str,
+    ) -> McpProbeResult {
         let endpoints = if self.deep_probe {
             MCP_ENDPOINTS_DEEP
         } else {
@@ -647,12 +660,14 @@ impl McpProber {
                     Some(result)
                 } else {
                     trace!("POST returned non-MCP response, trying legacy SSE: {}", url);
-                    self.try_legacy_sse_with_fixup(target, endpoint, scheme).await
+                    self.try_legacy_sse_with_fixup(target, endpoint, scheme)
+                        .await
                 }
             }
             Err(e) => {
                 trace!("Stage 3 probe failed for {}: {}", url, e);
-                self.try_legacy_sse_with_fixup(target, endpoint, scheme).await
+                self.try_legacy_sse_with_fixup(target, endpoint, scheme)
+                    .await
             }
         }
     }
@@ -695,7 +710,10 @@ impl McpProber {
         };
 
         for sse_endpoint in sse_endpoints {
-            if let Some(result) = self.probe_legacy_sse_endpoint(target, sse_endpoint, scheme).await {
+            if let Some(result) = self
+                .probe_legacy_sse_endpoint(target, sse_endpoint, scheme)
+                .await
+            {
                 return Some(result);
             }
         }
@@ -735,7 +753,9 @@ impl McpProber {
         }
 
         // Step 1: Read first event to get session_id (with timeout)
-        let first_event = self.read_sse_first_event_from_stream(&mut sse_response).await?;
+        let first_event = self
+            .read_sse_first_event_from_stream(&mut sse_response)
+            .await?;
 
         if !first_event.contains("event: endpoint") && !first_event.contains("event:endpoint") {
             return None;
@@ -747,12 +767,11 @@ impl McpProber {
         // /messages/?session_id=, mcp-go uses /message?sessionId=.  The official
         // TypeScript MCP *client* treats the data value as an opaque URL, so we
         // do the same: accept any non-empty value after the "event: endpoint" gate.
-        let messages_path = first_event.lines()
-            .find_map(|line| {
-                line.strip_prefix("data:")
-                    .map(|d| d.trim().to_string())
-                    .filter(|d| !d.is_empty())
-            })?;
+        let messages_path = first_event.lines().find_map(|line| {
+            line.strip_prefix("data:")
+                .map(|d| d.trim().to_string())
+                .filter(|d| !d.is_empty())
+        })?;
 
         let messages_url = if messages_path.starts_with("http") {
             messages_path.clone()
@@ -785,20 +804,24 @@ impl McpProber {
 
         // Step 3: Read response from SSE stream (with timeout)
         let sse_timeout = Duration::from_secs(3);
-        let response_body = match timeout(sse_timeout, self.read_sse_json_response(&mut sse_response)).await {
-            Ok(Some(body)) => body,
-            Ok(None) | Err(_) => {
-                // Timeout or no response - but we confirmed SSE transport exists
-                trace!("Legacy SSE: no response within timeout, but transport confirmed");
-                let mut confidence = McpConfidence::new();
-                confidence.add_evidence(60, "MCP SSE transport (endpoint event, no init response)");
+        let response_body =
+            match timeout(sse_timeout, self.read_sse_json_response(&mut sse_response)).await {
+                Ok(Some(body)) => body,
+                Ok(None) | Err(_) => {
+                    // Timeout or no response - but we confirmed SSE transport exists
+                    trace!("Legacy SSE: no response within timeout, but transport confirmed");
+                    let mut confidence = McpConfidence::new();
+                    confidence
+                        .add_evidence(60, "MCP SSE transport (endpoint event, no init response)");
 
-                return Some(McpProbeResult::default()
-                    .with_confidence(confidence)
-                    .with_endpoint(sse_endpoint)
-                    .with_transport(TransportType::Sse));
-            }
-        };
+                    return Some(
+                        McpProbeResult::default()
+                            .with_confidence(confidence)
+                            .with_endpoint(sse_endpoint)
+                            .with_transport(TransportType::Sse),
+                    );
+                }
+            };
 
         // Step 4: Parse and validate the response
         let (confidence, server_info) = self.stage4_validate_response(&response_body);
@@ -808,10 +831,12 @@ impl McpProber {
             let mut fallback_confidence = McpConfidence::new();
             fallback_confidence.add_evidence(50, "MCP SSE transport (endpoint event)");
 
-            return Some(McpProbeResult::default()
-                .with_confidence(fallback_confidence)
-                .with_endpoint(sse_endpoint)
-                .with_transport(TransportType::Sse));
+            return Some(
+                McpProbeResult::default()
+                    .with_confidence(fallback_confidence)
+                    .with_endpoint(sse_endpoint)
+                    .with_transport(TransportType::Sse),
+            );
         }
 
         // Extract session ID from URL query parameters.
@@ -876,11 +901,19 @@ impl McpProber {
                 }
                 Ok(Ok(None)) => {
                     let body_str = String::from_utf8_lossy(&body).to_string();
-                    return if body_str.is_empty() { None } else { Some(body_str) };
+                    return if body_str.is_empty() {
+                        None
+                    } else {
+                        Some(body_str)
+                    };
                 }
                 Ok(Err(_)) | Err(_) => {
                     let body_str = String::from_utf8_lossy(&body).to_string();
-                    return if body_str.is_empty() { None } else { Some(body_str) };
+                    return if body_str.is_empty() {
+                        None
+                    } else {
+                        Some(body_str)
+                    };
                 }
             }
         }
@@ -945,7 +978,9 @@ impl McpProber {
             }
 
             // Check if it's JSON-RPC
-            if data.contains("\"jsonrpc\"") && (data.contains("\"result\"") || data.contains("\"error\"")) {
+            if data.contains("\"jsonrpc\"")
+                && (data.contains("\"result\"") || data.contains("\"error\""))
+            {
                 // Validate it parses as JSON
                 if serde_json::from_str::<serde_json::Value>(&data).is_ok() {
                     return Some(data);
@@ -997,7 +1032,10 @@ impl McpProber {
         } else if status.is_success() || status == reqwest::StatusCode::UNAUTHORIZED {
             // 2xx: server accepts malicious Origin - vulnerable
             // 401: server checked auth before origin - origin not validated (still vulnerable)
-            trace!("Origin validation: DISABLED (DNS rebinding risk) - status {}", status);
+            trace!(
+                "Origin validation: DISABLED (DNS rebinding risk) - status {}",
+                status
+            );
             Some(false)
         } else {
             // Other error (network, 5xx, etc.) - can't determine
@@ -1005,7 +1043,10 @@ impl McpProber {
         }
     }
 
-    async fn probe_endpoint(&self, url: &str) -> std::result::Result<McpProbeResult, reqwest::Error> {
+    async fn probe_endpoint(
+        &self,
+        url: &str,
+    ) -> std::result::Result<McpProbeResult, reqwest::Error> {
         let headers = self.mcp_headers();
 
         // Try latest protocol version first
@@ -1019,7 +1060,8 @@ impl McpProber {
             .await?;
 
         // If we get an error response, try legacy protocol version
-        let response = if response.status().is_client_error() || response.status().is_server_error() {
+        let response = if response.status().is_client_error() || response.status().is_server_error()
+        {
             trace!("Latest protocol version failed, trying legacy: {}", url);
             let legacy_request = create_initialize_request_with_version(PROTOCOL_VERSION_LEGACY);
             self.client
@@ -1051,7 +1093,10 @@ impl McpProber {
             let mut has_mcp_hints = false;
 
             // Check WWW-Authenticate header for MCP/OAuth hints
-            if let Some(www_auth) = response_headers.get("www-authenticate").and_then(|v| v.to_str().ok()) {
+            if let Some(www_auth) = response_headers
+                .get("www-authenticate")
+                .and_then(|v| v.to_str().ok())
+            {
                 let www_auth_lower = www_auth.to_lowercase();
                 if www_auth_lower.contains("mcp") || www_auth_lower.contains("bearer") {
                     has_mcp_hints = true;
@@ -1083,7 +1128,8 @@ impl McpProber {
                 confidence.add_evidence(15, &format!("HTTP {} on MCP endpoint", status.as_u16()));
             } else {
                 // Low confidence - just an auth response, could be anything
-                confidence.set_fixed_score(15, &format!("HTTP {} (no MCP indicators)", status.as_u16()));
+                confidence
+                    .set_fixed_score(15, &format!("HTTP {} (no MCP indicators)", status.as_u16()));
             }
 
             let error_msg = if status == reqwest::StatusCode::UNAUTHORIZED {
@@ -1127,7 +1173,10 @@ impl McpProber {
 
         // Boost confidence for MCP-specific response headers
         if has_mcp_headers {
-            confidence.add_evidence(25, "MCP-specific headers (mcp-session-id or mcp-protocol-version)");
+            confidence.add_evidence(
+                25,
+                "MCP-specific headers (mcp-session-id or mcp-protocol-version)",
+            );
         }
 
         let mut result = McpProbeResult::default()
@@ -1232,7 +1281,10 @@ impl McpProber {
         Self::is_valid_jsonrpc_response_with_id(parsed, None)
     }
 
-    fn is_valid_jsonrpc_response_with_id(parsed: &serde_json::Value, expected_id: Option<u64>) -> bool {
+    fn is_valid_jsonrpc_response_with_id(
+        parsed: &serde_json::Value,
+        expected_id: Option<u64>,
+    ) -> bool {
         // 1. "jsonrpc": "2.0" field MUST exist
         if parsed.get("jsonrpc").and_then(|v| v.as_str()) != Some("2.0") {
             return false;
@@ -1368,9 +1420,9 @@ impl McpProber {
         if parsed.get("jsonrpc").and_then(|v| v.as_str()) != Some("2.0") {
             return None;
         }
-        let id_matches = parsed.get("id").is_some_and(|v| {
-            v.as_u64() == Some(2) || v.as_str() == Some("2")
-        });
+        let id_matches = parsed
+            .get("id")
+            .is_some_and(|v| v.as_u64() == Some(2) || v.as_str() == Some("2"));
         if !id_matches {
             return None;
         }
@@ -1446,8 +1498,14 @@ mod tests {
             "id": 2,
             "result": {}
         });
-        assert!(!McpProber::is_valid_jsonrpc_response_with_id(&invalid, Some(1)));
-        assert!(McpProber::is_valid_jsonrpc_response_with_id(&invalid, Some(2)));
+        assert!(!McpProber::is_valid_jsonrpc_response_with_id(
+            &invalid,
+            Some(1)
+        ));
+        assert!(McpProber::is_valid_jsonrpc_response_with_id(
+            &invalid,
+            Some(2)
+        ));
     }
 
     #[test]
@@ -1472,7 +1530,10 @@ mod tests {
 
     #[test]
     fn test_tool_risk_critical() {
-        let tool = ToolInfo::new("execute_shell".to_string(), Some("Run shell commands".to_string()));
+        let tool = ToolInfo::new(
+            "execute_shell".to_string(),
+            Some("Run shell commands".to_string()),
+        );
         assert_eq!(tool.risk_level, RiskLevel::Critical);
 
         let tool = ToolInfo::new("run_command".to_string(), None);

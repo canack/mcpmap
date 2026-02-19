@@ -53,7 +53,12 @@ fn mock_mcp_error_response(code: i64, message: &str) -> String {
 }
 
 /// Helper to mount both GET (returns 405) and POST mocks for MCP server simulation
-async fn mount_mcp_mocks(mock_server: &MockServer, server_name: &str, version: &str, capabilities: &[&str]) {
+async fn mount_mcp_mocks(
+    mock_server: &MockServer,
+    server_name: &str,
+    version: &str,
+    capabilities: &[&str],
+) {
     // Stage 2: GET returns 405 (MCP servers expect POST)
     Mock::given(method("GET"))
         .and(path("/"))
@@ -64,11 +69,13 @@ async fn mount_mcp_mocks(mock_server: &MockServer, server_name: &str, version: &
     // Stage 3: POST to / returns MCP response
     Mock::given(method("POST"))
         .and(path("/"))
-        .respond_with(ResponseTemplate::new(200).set_body_string(mock_mcp_response(
-            server_name,
-            version,
-            capabilities,
-        )))
+        .respond_with(
+            ResponseTemplate::new(200).set_body_string(mock_mcp_response(
+                server_name,
+                version,
+                capabilities,
+            )),
+        )
         .mount(mock_server)
         .await;
 }
@@ -89,7 +96,13 @@ fn get_capabilities(result: &mcpmap::mcp::prober::McpProbeResult) -> Vec<String>
 #[tokio::test]
 async fn test_mock_everything_server() {
     let mock_server = MockServer::start().await;
-    mount_mcp_mocks(&mock_server, "everything-server", "1.0.0", &["tools", "resources", "prompts"]).await;
+    mount_mcp_mocks(
+        &mock_server,
+        "everything-server",
+        "1.0.0",
+        &["tools", "resources", "prompts"],
+    )
+    .await;
 
     let prober = McpProber::new(Duration::from_secs(5)).unwrap();
     let uri = mock_server.uri();
@@ -126,7 +139,13 @@ async fn test_mock_memory_server() {
 #[tokio::test]
 async fn test_mock_filesystem_server() {
     let mock_server = MockServer::start().await;
-    mount_mcp_mocks(&mock_server, "filesystem-server", "0.6.2", &["tools", "resources"]).await;
+    mount_mcp_mocks(
+        &mock_server,
+        "filesystem-server",
+        "0.6.2",
+        &["tools", "resources"],
+    )
+    .await;
 
     let prober = McpProber::new(Duration::from_secs(5)).unwrap();
     let uri = mock_server.uri();
@@ -174,7 +193,13 @@ async fn test_mock_fetch_server() {
 #[tokio::test]
 async fn test_mock_sequential_thinking_server() {
     let mock_server = MockServer::start().await;
-    mount_mcp_mocks(&mock_server, "sequential-thinking-server", "0.6.2", &["tools"]).await;
+    mount_mcp_mocks(
+        &mock_server,
+        "sequential-thinking-server",
+        "0.6.2",
+        &["tools"],
+    )
+    .await;
 
     let prober = McpProber::new(Duration::from_secs(5)).unwrap();
     let uri = mock_server.uri();
@@ -190,7 +215,13 @@ async fn test_mock_sequential_thinking_server() {
 #[tokio::test]
 async fn test_mock_sqlite_server() {
     let mock_server = MockServer::start().await;
-    mount_mcp_mocks(&mock_server, "sqlite-server", "0.6.2", &["tools", "resources"]).await;
+    mount_mcp_mocks(
+        &mock_server,
+        "sqlite-server",
+        "0.6.2",
+        &["tools", "resources"],
+    )
+    .await;
 
     let prober = McpProber::new(Duration::from_secs(5)).unwrap();
     let uri = mock_server.uri();
@@ -222,7 +253,13 @@ async fn test_mock_git_server() {
 #[tokio::test]
 async fn test_mock_postgres_server() {
     let mock_server = MockServer::start().await;
-    mount_mcp_mocks(&mock_server, "postgres-mcp", "0.6.2", &["tools", "resources"]).await;
+    mount_mcp_mocks(
+        &mock_server,
+        "postgres-mcp",
+        "0.6.2",
+        &["tools", "resources"],
+    )
+    .await;
 
     let prober = McpProber::new(Duration::from_secs(5)).unwrap();
     let uri = mock_server.uri();
@@ -284,7 +321,10 @@ async fn test_mock_auth_required_401_with_mcp_hints() {
     let result = prober.probe(&target).await;
 
     assert!(result.auth_required);
-    assert!(result.confidence.score >= 30, "Should have meaningful confidence with MCP hints");
+    assert!(
+        result.confidence.score >= 30,
+        "Should have meaningful confidence with MCP hints"
+    );
 }
 
 #[tokio::test]
@@ -301,8 +341,9 @@ async fn test_mock_auth_required_403_with_jsonrpc_error() {
     Mock::given(method("POST"))
         .and(path("/"))
         .respond_with(
-            ResponseTemplate::new(403)
-                .set_body_string(r#"{"jsonrpc":"2.0","error":{"code":-32000,"message":"Forbidden"}}"#),
+            ResponseTemplate::new(403).set_body_string(
+                r#"{"jsonrpc":"2.0","error":{"code":-32000,"message":"Forbidden"}}"#,
+            ),
         )
         .mount(&mock_server)
         .await;
@@ -315,7 +356,10 @@ async fn test_mock_auth_required_403_with_jsonrpc_error() {
     let result = prober.probe(&target).await;
 
     assert!(result.auth_required);
-    assert!(result.confidence.score >= 30, "Should have meaningful confidence with JSON-RPC error");
+    assert!(
+        result.confidence.score >= 30,
+        "Should have meaningful confidence with JSON-RPC error"
+    );
 }
 
 #[tokio::test]
@@ -346,8 +390,14 @@ async fn test_mock_auth_without_mcp_hints_low_confidence() {
 
     assert!(result.auth_required);
     // Without MCP hints, confidence should be low (Unlikely level)
-    assert!(result.confidence.score < 30, "Should have low confidence without MCP hints");
-    assert!(!result.is_mcp_server(), "Should not confirm as MCP server without hints");
+    assert!(
+        result.confidence.score < 30,
+        "Should have low confidence without MCP hints"
+    );
+    assert!(
+        !result.is_mcp_server(),
+        "Should not confirm as MCP server without hints"
+    );
 }
 
 // ============================================================================
@@ -455,11 +505,13 @@ async fn test_mock_endpoint_root() {
     // POST to / works
     Mock::given(method("POST"))
         .and(path("/"))
-        .respond_with(ResponseTemplate::new(200).set_body_string(mock_mcp_response(
-            "root-endpoint-server",
-            "1.0.0",
-            &["tools"],
-        )))
+        .respond_with(
+            ResponseTemplate::new(200).set_body_string(mock_mcp_response(
+                "root-endpoint-server",
+                "1.0.0",
+                &["tools"],
+            )),
+        )
         .mount(&mock_server)
         .await;
 
@@ -495,11 +547,13 @@ async fn test_mock_endpoint_mcp() {
     // POST to /mcp works
     Mock::given(method("POST"))
         .and(path("/mcp"))
-        .respond_with(ResponseTemplate::new(200).set_body_string(mock_mcp_response(
-            "mcp-endpoint-server",
-            "1.0.0",
-            &["tools"],
-        )))
+        .respond_with(
+            ResponseTemplate::new(200).set_body_string(mock_mcp_response(
+                "mcp-endpoint-server",
+                "1.0.0",
+                &["tools"],
+            )),
+        )
         .mount(&mock_server)
         .await;
 
@@ -578,7 +632,10 @@ async fn test_scan_engine_multiple_servers() {
 
     let engine = ScanEngine::new(scan_config, tokio_util::sync::CancellationToken::new()).unwrap();
     let results = engine
-        .scan(vec![addr1.ip(), addr2.ip()], vec![addr1.port(), addr2.port()])
+        .scan(
+            vec![addr1.ip(), addr2.ip()],
+            vec![addr1.port(), addr2.port()],
+        )
         .await;
 
     assert!(results.len() >= 2);
@@ -591,7 +648,13 @@ async fn test_scan_engine_multiple_servers() {
 #[tokio::test]
 async fn test_all_capabilities() {
     let mock_server = MockServer::start().await;
-    mount_mcp_mocks(&mock_server, "full-server", "1.0.0", &["tools", "resources", "prompts", "logging"]).await;
+    mount_mcp_mocks(
+        &mock_server,
+        "full-server",
+        "1.0.0",
+        &["tools", "resources", "prompts", "logging"],
+    )
+    .await;
 
     let prober = McpProber::new(Duration::from_secs(5)).unwrap();
     let uri = mock_server.uri();
@@ -633,7 +696,13 @@ async fn test_no_capabilities() {
 #[tokio::test]
 async fn test_confidence_full_mcp_response() {
     let mock_server = MockServer::start().await;
-    mount_mcp_mocks(&mock_server, "test-server", "1.0.0", &["tools", "resources"]).await;
+    mount_mcp_mocks(
+        &mock_server,
+        "test-server",
+        "1.0.0",
+        &["tools", "resources"],
+    )
+    .await;
 
     let prober = McpProber::new(Duration::from_secs(5)).unwrap();
     let uri = mock_server.uri();
@@ -664,13 +733,15 @@ async fn test_confidence_minimal_mcp_response() {
     // Minimal response: only jsonrpc and protocolVersion (known version)
     Mock::given(method("POST"))
         .and(path("/"))
-        .respond_with(ResponseTemplate::new(200).set_body_string(r#"{
+        .respond_with(ResponseTemplate::new(200).set_body_string(
+            r#"{
             "jsonrpc": "2.0",
             "id": 1,
             "result": {
                 "protocolVersion": "2025-11-25"
             }
-        }"#))
+        }"#,
+        ))
         .mount(&mock_server)
         .await;
 
@@ -713,11 +784,13 @@ async fn test_stage2_nginx_still_probes_mcp() {
     // POST returns valid MCP response - should be detected despite nginx header
     Mock::given(method("POST"))
         .and(path("/"))
-        .respond_with(ResponseTemplate::new(200).set_body_string(mock_mcp_response(
-            "test-server",
-            "1.0.0",
-            &["tools"],
-        )))
+        .respond_with(
+            ResponseTemplate::new(200).set_body_string(mock_mcp_response(
+                "test-server",
+                "1.0.0",
+                &["tools"],
+            )),
+        )
         .mount(&mock_server)
         .await;
 
@@ -771,11 +844,13 @@ async fn test_stage2_proceeds_on_405() {
     // Stage 3: POST works (may be called multiple times due to Origin validation)
     Mock::given(method("POST"))
         .and(path("/"))
-        .respond_with(ResponseTemplate::new(200).set_body_string(mock_mcp_response(
-            "test-server",
-            "1.0.0",
-            &["tools"],
-        )))
+        .respond_with(
+            ResponseTemplate::new(200).set_body_string(mock_mcp_response(
+                "test-server",
+                "1.0.0",
+                &["tools"],
+            )),
+        )
         .expect(1..) // At least 1 call
         .mount(&mock_server)
         .await;
@@ -836,11 +911,13 @@ async fn test_rejects_jsonrpc_wrong_id() {
     // (real MCP servers may use different ID schemes)
     Mock::given(method("POST"))
         .and(path("/"))
-        .respond_with(ResponseTemplate::new(200).set_body_string(r#"{
+        .respond_with(ResponseTemplate::new(200).set_body_string(
+            r#"{
             "jsonrpc": "2.0",
             "id": 999,
             "result": {"protocolVersion": "2025-11-25"}
-        }"#))
+        }"#,
+        ))
         .mount(&mock_server)
         .await;
 
@@ -868,7 +945,8 @@ async fn test_accepts_string_jsonrpc_id() {
     // Some servers stringify the numeric ID (e.g. JavaScript implementations)
     Mock::given(method("POST"))
         .and(path("/"))
-        .respond_with(ResponseTemplate::new(200).set_body_string(r#"{
+        .respond_with(ResponseTemplate::new(200).set_body_string(
+            r#"{
             "jsonrpc": "2.0",
             "id": "1",
             "result": {
@@ -876,7 +954,8 @@ async fn test_accepts_string_jsonrpc_id() {
                 "serverInfo": {"name": "string-id-server", "version": "1.0"},
                 "capabilities": {"tools": {}}
             }
-        }"#))
+        }"#,
+        ))
         .mount(&mock_server)
         .await;
 
@@ -904,11 +983,13 @@ async fn test_rejects_jsonrpc_no_mcp_fields() {
     // Valid JSON-RPC 2.0 but no MCP-specific fields
     Mock::given(method("POST"))
         .and(path("/"))
-        .respond_with(ResponseTemplate::new(200).set_body_string(r#"{
+        .respond_with(ResponseTemplate::new(200).set_body_string(
+            r#"{
             "jsonrpc": "2.0",
             "id": 1,
             "result": {"version": "1.0.0"}
-        }"#))
+        }"#,
+        ))
         .mount(&mock_server)
         .await;
 
@@ -970,7 +1051,10 @@ data: }}
 
     let result = prober.probe(&target).await;
 
-    assert!(result.is_mcp_server(), "Should detect SSE multi-line MCP server");
+    assert!(
+        result.is_mcp_server(),
+        "Should detect SSE multi-line MCP server"
+    );
     assert!(result.confidence.score >= 70, "Should have high confidence");
     assert_eq!(
         result.server_info.as_ref().and_then(|s| s.name.as_deref()),
@@ -1023,7 +1107,10 @@ async fn test_batch_jsonrpc_response() {
 
     let result = prober.probe(&target).await;
 
-    assert!(result.is_mcp_server(), "Should detect MCP from batch response");
+    assert!(
+        result.is_mcp_server(),
+        "Should detect MCP from batch response"
+    );
     assert_eq!(
         result.server_info.as_ref().and_then(|s| s.name.as_deref()),
         Some("batch-server")
@@ -1102,7 +1189,10 @@ async fn test_protocol_version_2025_11_25() {
 
     assert!(result.is_mcp_server());
     assert_eq!(
-        result.server_info.as_ref().and_then(|s| s.protocol_version.as_deref()),
+        result
+            .server_info
+            .as_ref()
+            .and_then(|s| s.protocol_version.as_deref()),
         Some("2025-11-25")
     );
 }
@@ -1114,8 +1204,8 @@ async fn test_protocol_version_2025_11_25() {
 #[tokio::test]
 async fn test_active_probe_detects_schema_poisoning() {
     use mcpmap::mcp::active::ActiveProber;
-    use mcpmap::mcp::protocol::ToolInfo;
     use mcpmap::mcp::prober::McpServerInfo;
+    use mcpmap::mcp::protocol::ToolInfo;
 
     let prober = ActiveProber::new(
         reqwest::Client::new(),
@@ -1166,8 +1256,8 @@ async fn test_active_probe_detects_schema_poisoning() {
 #[tokio::test]
 async fn test_active_probe_detects_tool_squatting() {
     use mcpmap::mcp::active::ActiveProber;
-    use mcpmap::mcp::protocol::ToolInfo;
     use mcpmap::mcp::prober::McpServerInfo;
+    use mcpmap::mcp::protocol::ToolInfo;
 
     let prober = ActiveProber::new(
         reqwest::Client::new(),
@@ -1209,8 +1299,8 @@ async fn test_active_probe_detects_tool_squatting() {
 #[tokio::test]
 async fn test_active_probe_detects_exfil_chain() {
     use mcpmap::mcp::active::ActiveProber;
-    use mcpmap::mcp::protocol::ToolInfo;
     use mcpmap::mcp::prober::McpServerInfo;
+    use mcpmap::mcp::protocol::ToolInfo;
 
     let prober = ActiveProber::new(
         reqwest::Client::new(),
@@ -1265,8 +1355,8 @@ async fn test_active_probe_detects_exfil_chain() {
 #[tokio::test]
 async fn test_active_probe_dry_run_no_network() {
     use mcpmap::mcp::active::ActiveProber;
-    use mcpmap::mcp::protocol::ToolInfo;
     use mcpmap::mcp::prober::McpServerInfo;
+    use mcpmap::mcp::protocol::ToolInfo;
 
     let prober = ActiveProber::new(
         reqwest::Client::new(),
@@ -1302,8 +1392,8 @@ async fn test_active_probe_dry_run_no_network() {
 #[tokio::test]
 async fn test_active_probe_cross_server_manipulation() {
     use mcpmap::mcp::active::ActiveProber;
-    use mcpmap::mcp::protocol::ToolInfo;
     use mcpmap::mcp::prober::McpServerInfo;
+    use mcpmap::mcp::protocol::ToolInfo;
 
     let prober = ActiveProber::new(
         reqwest::Client::new(),
@@ -1376,5 +1466,9 @@ async fn test_origin_validation_disabled() {
 
     assert!(result.is_mcp_server());
     // Server accepted without Origin → origin_validation should be Some(false)
-    assert_eq!(result.origin_validation, Some(false), "Should detect missing Origin validation");
+    assert_eq!(
+        result.origin_validation,
+        Some(false),
+        "Should detect missing Origin validation"
+    );
 }
