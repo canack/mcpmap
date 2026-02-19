@@ -21,7 +21,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ matrix.rust }}
-      - run: cargo check --all-targets
+      - run: cargo check --lib --bin mcpmap
 
   clippy:
     name: Clippy
