@@ -4,6 +4,10 @@
 [![Rust](https://img.shields.io/badge/rust-1.85%2B-orange.svg?logo=rust)](https://www.rust-lang.org)
 [![CI](https://github.com/canack/mcpmap/actions/workflows/ci.yml/badge.svg)](https://github.com/canack/mcpmap/actions)
 
+<p align="center">
+  <img src="assets/demo.gif" alt="mcpmap demo" width="720">
+</p>
+
 Network scanner that discovers and security-audits [MCP](https://modelcontextprotocol.io) servers across IP ranges. Like nmap, but for Model Context Protocol.
 
 ## Install
