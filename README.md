@@ -1,7 +1,7 @@
 # mcpmap
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Rust](https://img.shields.io/badge/rust-1.85%2B-orange.svg?logo=rust)](https://www.rust-lang.org)
+[![Rust](https://img.shields.io/badge/rust-1.88%2B-orange.svg?logo=rust)](https://www.rust-lang.org)
 [![CI](https://github.com/canack/mcpmap/actions/workflows/ci.yml/badge.svg)](https://github.com/canack/mcpmap/actions)
 
 <p align="center">

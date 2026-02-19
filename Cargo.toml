@@ -10,7 +10,7 @@ readme = "README.md"
 description = "Discover MCP (Model Context Protocol) servers on network ranges"
 keywords = ["mcp", "scanner", "security", "network", "audit"]
 categories = ["command-line-utilities", "network-programming", "development-tools"]
-rust-version = "1.85"
+rust-version = "1.88"
 exclude = ["tests/", ".github/"]
 
 [dependencies]
