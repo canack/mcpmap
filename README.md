@@ -118,35 +118,45 @@ MCPMAP - 256 targets scanned in 3.42s
 ## Options
 
 ```
-SCANNING
-  -m, --mode <MODE>         fast | full | stealth              [default: fast]
-  -p, --ports <PORTS>       port spec (80,443 or 1-1000)      [default: known MCP ports]
-  -t, --threads <N>         concurrent threads                 [default: 50]
-      --timeout <SECS>      connection timeout                 [default: 5]
-      --rate-limit <N>      max req/sec (0 = unlimited)        [default: 0]
-      --deep-probe          try extra endpoints (/sse, /api/mcp, etc.)
-      --scheme <S>          http | https | both                [default: both]
-      --insecure            accept invalid TLS certs
-      --max-targets <N>     safety cap on target count         [default: 1000000]
+Scanning:
+  -m, --mode <MODE>      fast | full | stealth         [default: fast]
+  -p, --ports <PORTS>    port range (80,443 or 1-1000)
+  -t, --threads <N>      concurrent threads            [default: 50]
+      --timeout <SECS>   connection timeout             [default: 5]
 
-ENUMERATION & ACTIVE
-      --enumerate           list tools on confirmed servers
-      --active              tier 1: metadata-only probing (requires --enumerate)
-      --probe-tools         tier 2: call LOW-risk tools (requires --i-accept-risk)
-      --probe-medium        tier 3: also call MEDIUM-risk tools
-      --i-accept-risk       explicit consent for tool invocation
-      --dry-run             show probe plan without executing
-      --pin <FILE>          save SHA-256 tool/resource hashes
-      --verify <FILE>       diff against saved pin file
+Probing:
+      --enumerate        list tools on confirmed servers
+      --active           active security probing (safe, metadata-only)
+      --probe-tools      call LOW-risk tools with test inputs
+      --probe-medium     also call MEDIUM-risk tools (pentest only)
+      --dry-run          show probe plan without executing
+      --i-accept-risk    explicit consent for tool invocation
+      --pin <FILE>       save tool/resource hashes
+      --verify <FILE>    verify against a saved pin file
 
-OUTPUT
-      --json                JSON output
-  -W, --wide                wide table (grep-friendly)
-      --min-confidence <N>  minimum confidence 0-100           [default: 0]
-      --show-all            include low-confidence results
-  -q, --quiet               suppress progress output
-  -v                        verbose (-v, -vv, -vvv)
+Output:
+      --json             JSON output
+  -W, --wide             wide table (grep-friendly)
+  -q, --quiet            suppress progress output
+  -v, --verbose          verbose (-v, -vv, -vvv)
 ```
+
+<details>
+<summary>Advanced options (see <code>mcpmap --help</code>)</summary>
+
+```
+Scanning:
+      --deep-probe          try extra endpoints (/sse, /api/mcp, /v1/mcp)
+      --scheme <S>          http | https | both         [default: both]
+      --insecure            accept invalid TLS certs
+      --max-targets <N>     max IP:port combinations    [default: 1000000]
+      --rate-limit <N>      max req/sec (0 = unlimited) [default: 0]
+
+Output:
+      --show-all            include low-confidence results
+      --min-confidence <N>  minimum confidence 0-100    [default: 0]
+```
+</details>
 
 ## Exit Codes
 
