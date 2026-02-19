@@ -25,12 +25,10 @@ pub enum SchemeMode {
     Http,
 }
 
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, ValueEnum)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub enum OutputFormat {
-    /// Detailed output with full information (default)
     #[default]
     Normal,
-    /// Wide table format (header/footer to stderr, data to stdout for grep/awk)
     Wide,
 }
 
@@ -45,101 +43,100 @@ pub struct Args {
     #[arg(required = true)]
     pub target: String,
 
+    // ── Scanning ──────────────────────────────────────────────
     /// Scan mode
-    #[arg(short, long, value_enum, default_value = "fast")]
+    #[arg(short, long, value_enum, default_value = "fast", help_heading = "Scanning")]
     pub mode: ScanMode,
 
-    /// Port range to scan (e.g., "1-1000" or "80,443,8080")
-    #[arg(short, long)]
+    /// Port range (e.g., "80,443" or "1-1000")
+    #[arg(short, long, help_heading = "Scanning")]
     pub ports: Option<String>,
 
-    /// Number of concurrent threads (minimum 1)
-    #[arg(short, long, default_value = "50")]
+    /// Concurrent threads
+    #[arg(short, long, default_value = "50", help_heading = "Scanning")]
     pub threads: usize,
 
     /// Connection timeout in seconds
-    #[arg(long, default_value = "5", value_parser = clap::value_parser!(u64).range(1..))]
+    #[arg(long, default_value = "5", value_parser = clap::value_parser!(u64).range(1..), help_heading = "Scanning")]
     pub timeout: u64,
 
-    /// Output as JSON
-    #[arg(long, conflicts_with_all = ["output", "wide"])]
-    pub json: bool,
-
-    /// Verbose output (-v, -vv, -vvv)
-    #[arg(short, long, action = clap::ArgAction::Count)]
-    pub verbose: u8,
-
-    /// Quiet mode - only show results
-    #[arg(short, long)]
-    pub quiet: bool,
-
-    /// Maximum number of targets (IP:port combinations) to scan
-    #[arg(long, default_value = "1000000")]
-    pub max_targets: usize,
-
-    /// Rate limit: maximum requests per second (0 = unlimited)
-    #[arg(long, default_value = "0")]
-    pub rate_limit: u32,
-
-    /// Enumerate tools on confirmed MCP servers (Stage 5)
-    #[arg(long)]
-    pub enumerate: bool,
-
-    /// Show all results including unlikely ones
-    #[arg(long)]
-    pub show_all: bool,
-
-    /// Minimum confidence score to include in results (0-100)
-    #[arg(long, default_value = "0", value_parser = clap::value_parser!(u8).range(..=100))]
-    pub min_confidence: u8,
-
-    /// Deep probe: try additional endpoints (/sse, /api/mcp, /v1/mcp)
-    #[arg(long)]
+    /// Try additional endpoints (/sse, /api/mcp, /v1/mcp)
+    #[arg(long, help_heading = "Scanning", hide_short_help = true)]
     pub deep_probe: bool,
 
-    /// Accept invalid TLS certificates (insecure, use with caution)
-    #[arg(long)]
-    pub insecure: bool,
-
-    /// URL scheme to use for connections
-    #[arg(long, value_enum, default_value = "both")]
+    /// URL scheme for connections
+    #[arg(long, value_enum, default_value = "both", help_heading = "Scanning", hide_short_help = true)]
     pub scheme: SchemeMode,
 
-    /// Output format (normal, wide)
-    #[arg(short = 'o', long, value_enum, default_value = "normal")]
-    pub output: OutputFormat,
+    /// Accept invalid TLS certificates
+    #[arg(long, help_heading = "Scanning", hide_short_help = true)]
+    pub insecure: bool,
 
-    /// Shortcut for --output wide (grep/awk friendly: header to stderr, data to stdout)
-    #[arg(short = 'W', long, conflicts_with = "output")]
-    pub wide: bool,
+    /// Max target count (IP:port combinations)
+    #[arg(long, default_value = "1000000", help_heading = "Scanning", hide_short_help = true)]
+    pub max_targets: usize,
 
-    /// Enable active behavioral probing (Tier 1: metadata-only, safe)
-    #[arg(long, default_value_t = false, requires = "enumerate")]
+    /// Max requests per second (0 = unlimited)
+    #[arg(long, default_value = "0", help_heading = "Scanning", hide_short_help = true)]
+    pub rate_limit: u32,
+
+    // ── Probing ──────────────────────────────────────────────
+    /// List tools on confirmed servers
+    #[arg(long, help_heading = "Probing")]
+    pub enumerate: bool,
+
+    /// Active security probing (safe, metadata-only)
+    #[arg(long, default_value_t = false, requires = "enumerate", help_heading = "Probing")]
     pub active: bool,
 
-    /// Enable Tier 2: call LOW-risk tools with benign test inputs
-    #[arg(long, default_value_t = false, requires = "active")]
+    /// Call LOW-risk tools with test inputs
+    #[arg(long, default_value_t = false, requires = "active", help_heading = "Probing")]
     pub probe_tools: bool,
 
-    /// Enable Tier 3: also call MEDIUM-risk tools (requires explicit consent)
-    #[arg(long, default_value_t = false, requires = "probe_tools")]
+    /// Also call MEDIUM-risk tools (pentest only)
+    #[arg(long, default_value_t = false, requires = "probe_tools", help_heading = "Probing")]
     pub probe_medium: bool,
 
-    /// Show what active probing WOULD do without executing
-    #[arg(long, default_value_t = false, requires = "active")]
+    /// Show probe plan without executing
+    #[arg(long, default_value_t = false, requires = "active", help_heading = "Probing")]
     pub dry_run: bool,
 
-    /// I accept the risks of active tool probing
-    #[arg(long, default_value_t = false)]
+    /// Explicit consent for tool invocation
+    #[arg(long, default_value_t = false, help_heading = "Probing")]
     pub i_accept_risk: bool,
 
-    /// Save tool/resource hashes to a pin file
-    #[arg(long, value_name = "FILE", conflicts_with = "verify")]
+    /// Save tool/resource hashes to pin file
+    #[arg(long, value_name = "FILE", conflicts_with = "verify", help_heading = "Probing")]
     pub pin: Option<PathBuf>,
 
-    /// Verify current state against a previously saved pin file
-    #[arg(long, value_name = "FILE")]
+    /// Verify against a saved pin file
+    #[arg(long, value_name = "FILE", help_heading = "Probing")]
     pub verify: Option<PathBuf>,
+
+    // ── Output ───────────────────────────────────────────────
+    /// JSON output
+    #[arg(long, conflicts_with = "wide", help_heading = "Output")]
+    pub json: bool,
+
+    /// Wide table (grep-friendly, data to stdout)
+    #[arg(short = 'W', long, help_heading = "Output")]
+    pub wide: bool,
+
+    /// Suppress progress output
+    #[arg(short, long, help_heading = "Output")]
+    pub quiet: bool,
+
+    /// Verbose (-v, -vv, -vvv)
+    #[arg(short, long, action = clap::ArgAction::Count, help_heading = "Output")]
+    pub verbose: u8,
+
+    /// Show all results including unlikely ones
+    #[arg(long, help_heading = "Output", hide_short_help = true)]
+    pub show_all: bool,
+
+    /// Minimum confidence score (0-100)
+    #[arg(long, default_value = "0", value_parser = clap::value_parser!(u8).range(..=100), help_heading = "Output", hide_short_help = true)]
+    pub min_confidence: u8,
 }
 
 impl Args {
@@ -148,7 +145,7 @@ impl Args {
         if self.wide {
             OutputFormat::Wide
         } else {
-            self.output
+            OutputFormat::Normal
         }
     }
 
