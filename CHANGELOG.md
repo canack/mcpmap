@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Default fast-mode ports updated to verified MCP server defaults (FastMCP, MCP Inspector, Cloudflare Workers, Azure Functions, Docker MCP Gateway, etc.)
+- CLI flags grouped into Scanning/Probing/Output sections with advanced options hidden from `-h`
+- Removed redundant `--output` flag (`--wide` and `--json` are sufficient)
 - Multi-platform Docker image (linux/amd64 + linux/arm64)
 
 ### Added
