@@ -261,7 +261,19 @@ See [SECURITY.md](SECURITY.md) for detailed descriptions and mitigations.
 
 ## Default Ports (Fast Mode)
 
-`3000-3003, 4000-4001, 5000-5001, 8000-8001, 8080-8081, 8888, 9000-9001`
+| Port | Server / Platform |
+|------|-------------------|
+| `80, 443` | Production (reverse proxy, cloud) |
+| `3000, 3001` | mcp-http-server, MCP everything server, TS SDK |
+| `3232` | MCP example-remote-server |
+| `5000, 5001` | Flask / Python MCP servers |
+| `5678` | n8n MCP server |
+| `6274, 6277` | MCP Inspector (client UI + proxy) |
+| `7071` | Azure Functions MCP |
+| `8000` | FastMCP Python, Supergateway |
+| `8080` | mcp-framework SSE, Fly.io, Docker MCP Gateway |
+| `8787` | Cloudflare Workers (wrangler dev) |
+| `8811` | Docker MCP Gateway (streaming) |
 
 ## Exit Codes
 

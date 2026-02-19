@@ -166,11 +166,17 @@ impl Args {
 #[must_use]
 pub fn known_mcp_ports() -> Vec<u16> {
     vec![
-        3000, 3001, 3002, 3003, // Common development ports
-        8000, 8001, 8080, 8081, 8888, // Common HTTP ports
-        5000, 5001, // Flask/Python defaults
-        4000, 4001, // Various frameworks
-        9000, 9001, // Various services
+        80, 443,          // Production (reverse proxy / cloud)
+        3000, 3001,       // mcp-http-server, MCP everything server, TS SDK
+        3232,             // MCP example-remote-server
+        5000, 5001,       // Flask/Python MCP servers
+        5678,             // n8n MCP server
+        6274, 6277,       // MCP Inspector (client UI + proxy)
+        7071,             // Azure Functions MCP
+        8000,             // FastMCP Python, Supergateway
+        8080,             // mcp-framework SSE, Fly.io, Docker MCP Gateway
+        8787,             // Cloudflare Workers (wrangler dev)
+        8811,             // Docker MCP Gateway (streaming)
     ]
 }
 
