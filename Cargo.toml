@@ -1,0 +1,42 @@
+[package]
+name = "mcpmap"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+repository = "https://github.com/canack/mcpmap"
+homepage = "https://github.com/canack/mcpmap"
+documentation = "https://docs.rs/mcpmap"
+readme = "README.md"
+description = "Discover MCP (Model Context Protocol) servers on network ranges"
+keywords = ["mcp", "scanner", "security", "network", "audit"]
+categories = ["command-line-utilities", "network-programming", "development-tools"]
+rust-version = "1.85"
+exclude = ["tests/", ".github/"]
+
+[dependencies]
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "time", "net", "sync", "signal"] }
+clap = { version = "4", features = ["derive"] }
+reqwest = { version = "0.12", features = ["json"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+ipnetwork = "0.20"
+futures = "0.3"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+thiserror = "2"
+colored = "2"
+console = "0.15"
+indicatif = "0.17"
+rand = "0.8"
+tokio-util = "0.7"
+sha2 = "0.10"
+chrono = { version = "0.4", features = ["serde"] }
+
+[dev-dependencies]
+wiremock = "0.6"
+testcontainers = "0.26.3"
+tokio-test = "0.4"
+
+[[bin]]
+name = "mcpmap"
+path = "src/main.rs"
