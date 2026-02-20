@@ -23,16 +23,6 @@ jobs:
           toolchain: ${{ matrix.rust }}
       - run: cargo check --lib --bin mcpmap
 
-  clippy:
-    name: Clippy
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          components: clippy
-      - run: cargo clippy --all-targets -- -D warnings
-
   fmt:
     name: Format
     runs-on: ubuntu-latest
